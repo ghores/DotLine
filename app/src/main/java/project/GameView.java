@@ -45,55 +45,6 @@ public class GameView extends View {
     private ArrayList<Line> lines = new ArrayList<>();
     private ArrayList<Home> homes = new ArrayList<>();
 
-    private static class Position {
-        public int x;
-        public int y;
-
-        public Position(int x, int y) {
-            this.x = x;
-            this.y = y;
-        }
-    }
-
-    private static class Diff {
-        public int i;
-        public int j;
-        public Float diff;
-
-        public Diff(int i, int j, float diff) {
-            this.i = i;
-            this.j = j;
-            this.diff = diff;
-        }
-    }
-
-    private static class Home {
-        public int i;
-        public int j;
-        public int playerIndex;
-
-        public Home(int i, int j) {
-            this.i = i;
-            this.j = j;
-        }
-    }
-
-    private static class Line {
-        public int i1;
-        public int j1;
-        public int i2;
-        public int j2;
-        public int playerIndex;
-
-        public Line(int i1, int j1, int i2, int j2, int playerIndex) {
-            this.i1 = i1;
-            this.j1 = j1;
-            this.i2 = i2;
-            this.j2 = j2;
-            this.playerIndex = playerIndex;
-        }
-    }
-
     public GameView(Context context) {
         super(context);
         initialize();
@@ -152,9 +103,7 @@ public class GameView extends View {
     @Override
     protected void onDraw(@NonNull Canvas canvas) {
         super.onDraw(canvas);
-
         canvas.drawColor(Color.parseColor("#222222"));
-
         for (Line line : lines) {
             connect(canvas, line);
         }
@@ -195,7 +144,6 @@ public class GameView extends View {
 
     public void detectConnectingLine() {
         ArrayList<Diff> diffs = new ArrayList<>();
-
         for (int i = 0; i < cols; i++) {
             for (int j = 0; j < rows; j++) {
                 Position position = computePoint(i, j);
@@ -226,9 +174,7 @@ public class GameView extends View {
                 firstPoint = min2;
                 secondPoint = min1;
             }
-
             home1 = new Home(firstPoint.i, firstPoint.j);
-
             if (firstPoint.i > 0) {
                 home2 = new Home(firstPoint.i - 1, firstPoint.j);
             }
@@ -241,9 +187,7 @@ public class GameView extends View {
                 firstPoint = min2;
                 secondPoint = min1;
             }
-
             home1 = new Home(firstPoint.i, firstPoint.j);
-
             if (firstPoint.j > 0) {
                 home2 = new Home(firstPoint.i, firstPoint.j - 1);
             }
@@ -323,5 +267,54 @@ public class GameView extends View {
         int x = offsetX + (i * space);
         int y = offsetY + ((rows - 1 - j) * space);
         return new Position(x, y);
+    }
+
+    private static class Position {
+        public int x;
+        public int y;
+
+        public Position(int x, int y) {
+            this.x = x;
+            this.y = y;
+        }
+    }
+
+    private static class Diff {
+        public int i;
+        public int j;
+        public Float diff;
+
+        public Diff(int i, int j, float diff) {
+            this.i = i;
+            this.j = j;
+            this.diff = diff;
+        }
+    }
+
+    private static class Home {
+        public int i;
+        public int j;
+        public int playerIndex;
+
+        public Home(int i, int j) {
+            this.i = i;
+            this.j = j;
+        }
+    }
+
+    private static class Line {
+        public int i1;
+        public int j1;
+        public int i2;
+        public int j2;
+        public int playerIndex;
+
+        public Line(int i1, int j1, int i2, int j2, int playerIndex) {
+            this.i1 = i1;
+            this.j1 = j1;
+            this.i2 = i2;
+            this.j2 = j2;
+            this.playerIndex = playerIndex;
+        }
     }
 }
