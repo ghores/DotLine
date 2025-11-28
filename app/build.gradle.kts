@@ -4,13 +4,13 @@ plugins {
 
 android {
     namespace = "com.example.dotline"
-    compileSdk = 35
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "com.example.dotline"
         minSdk = 22
         //noinspection EditedTargetSdkVersion
-        targetSdk = 35
+        targetSdk = 36
         versionCode = 1
         versionName = "1.0"
 
@@ -33,7 +33,7 @@ android {
 }
 
 dependencies {
-
+    //Android
     implementation("androidx.appcompat:appcompat:1.7.1")
     implementation("com.google.android.material:material:1.13.0")
     implementation("androidx.constraintlayout:constraintlayout:2.2.1")
