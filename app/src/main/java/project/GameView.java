@@ -115,7 +115,7 @@ public class GameView extends View {
                 homePaint.setColor(Color.parseColor(player2Color));
             }
             Position homePosition = computePoint(home.i, home.j);
-            canvas.drawCircle(homePosition.x + space / 2, homePosition.y - space / 2, 30, homePaint);
+            canvas.drawCircle(homePosition.x + (float) space / 2, homePosition.y - (float) space / 2, 30, homePaint);
         }
         for (int i = 0; i < cols; i++) {
             for (int j = 0; j < rows; j++) {
@@ -256,7 +256,7 @@ public class GameView extends View {
     private void debugNaming(Canvas canvas) {
         for (int i = 0; i < cols; i++) {
             for (int j = 0; j < rows; j++) {
-                String name = "" + i + "," + j;
+                String name = i + "," + j;
                 Position point = computePoint(i, j);
                 canvas.drawText(name, point.x, point.y + 50, textPaint);
             }
