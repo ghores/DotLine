@@ -1,3 +1,4 @@
 <resources>
-    <string name="app_name">dotline</string>
+    <string name="app_name">Dotline</string>
+    <string name="reset_game">Reset Game</string>
 </resources>

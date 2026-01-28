@@ -26,8 +26,11 @@ public class GameView extends View {
     private Paint linePaint;
     private Paint homePaint;
 
-    private String player1Color = "#4444ff";
-    private String player2Color = "#ff4444";
+    private int player1Color = Color.parseColor("#4444ff");
+    private int player2Color = Color.parseColor("#ff4444");
+
+    private int player1score = 0;
+    private int player2score = 0;
 
     private int cols = 4;
     private int rows = 4;
@@ -41,6 +44,7 @@ public class GameView extends View {
 
     private boolean isDebugMode = false;
     private boolean isSide1 = true;
+    private boolean isGameOver = false;
 
     private ArrayList<Line> lines = new ArrayList<>();
     private ArrayList<Home> homes = new ArrayList<>();
@@ -61,6 +65,7 @@ public class GameView extends View {
     }
 
     private void initialize() {
+        if (isInEditMode()) return;
         dotPaint = new Paint();
         dotPaint.setColor(Color.WHITE);
         dotPaint.setStyle(Paint.Style.FILL);
@@ -102,21 +107,24 @@ public class GameView extends View {
 
     @Override
     protected void onDraw(@NonNull Canvas canvas) {
+        if (isInEditMode()) return;
         super.onDraw(canvas);
         canvas.drawColor(Color.parseColor("#222222"));
+
         for (Line line : lines) {
             connect(canvas, line);
         }
 
         for (Home home : homes) {
             if (home.playerIndex == 1) {
-                homePaint.setColor(Color.parseColor(player1Color));
+                homePaint.setColor(player1Color);
             } else {
-                homePaint.setColor(Color.parseColor(player2Color));
+                homePaint.setColor(player2Color);
             }
             Position homePosition = computePoint(home.i, home.j);
             canvas.drawCircle(homePosition.x + (float) space / 2, homePosition.y - (float) space / 2, 30, homePaint);
         }
+
         for (int i = 0; i < cols; i++) {
             for (int j = 0; j < rows; j++) {
                 Position point = computePoint(i, j);
@@ -124,21 +132,50 @@ public class GameView extends View {
             }
         }
 
+        int screenWidthHalf = G.context.getResources().getDisplayMetrics().widthPixels / 2;
+        int screenHeight = G.context.getResources().getDisplayMetrics().heightPixels;
+
+        homePaint.setColor(player1Color);
+        canvas.drawCircle(screenWidthHalf - 100, 100, 40, homePaint);
+        canvas.drawText("" + player1score, screenWidthHalf - 100, 110, textPaint);
+        canvas.drawText("PLAYER 1", screenWidthHalf - 100, 180, textPaint);
+
+        homePaint.setColor(player2Color);
+        canvas.drawCircle(screenWidthHalf + 100, 100, 40, homePaint);
+        canvas.drawText("" + player2score, screenWidthHalf + 100, 110, textPaint);
+        canvas.drawText("PLAYER 2", screenWidthHalf + 100, 180, textPaint);
+
         if (isDebugMode) {
             canvas.drawCircle(touchX, touchY, 10, touchPaint);
             debugNaming(canvas);
+        }
+
+        if (homes.size() == (cols - 1) * (rows - 1)) {
+            isGameOver = true;
+        }
+
+        if (isGameOver) {
+            String message = "";
+            if (player1score == player2score) {
+                message = "GAME DRAW";
+            } else if (player1score > player2score) {
+                message = "PLAYER 1 WON THE GAME";
+            } else {
+                message = "PLAYER 2 WON THE GAME";
+            }
+            canvas.drawText(message, screenWidthHalf, getHeight() - 100, textPaint);
         }
     }
 
     @SuppressLint("ClickableViewAccessibility")
     @Override
     public boolean onTouchEvent(MotionEvent event) {
+        if (isGameOver) return true;
         touchX = event.getX();
         touchY = event.getY();
 
         detectConnectingLine();
         invalidate();
-        isSide1 = !isSide1;
         return super.onTouchEvent(event);
     }
 
@@ -157,6 +194,7 @@ public class GameView extends View {
                 return o1.diff.compareTo(o2.diff);
             }
         });
+
         Diff min1 = diffs.get(0);
         Diff min2 = diffs.get(1);
 
@@ -192,19 +230,34 @@ public class GameView extends View {
                 home2 = new Home(firstPoint.i, firstPoint.j - 1);
             }
         }
+
         if (firstPoint.diff > space / 2) {
             // return;
         }
-        lines.add(new Line(firstPoint.i, firstPoint.j, secondPoint.i, secondPoint.j, isSide1 ? 1 : 2));
-        if (home1 != null) {
-            checkHome(home1);
+
+        for (Line line : lines) {
+            if (line.i1 == firstPoint.i && line.j1 == firstPoint.j && line.i2 == secondPoint.i && line.j2 == secondPoint.j) {
+                return;
+            }
         }
+
+        lines.add(new Line(firstPoint.i, firstPoint.j, secondPoint.i, secondPoint.j, isSide1 ? 1 : 2));
+        boolean wonHome1 = false;
+        boolean wonHome2 = false;
+        if (home1 != null) {
+            wonHome1 = checkHome(home1);
+        }
+
         if (home2 != null) {
-            checkHome(home2);
+            wonHome2 = checkHome(home2);
+        }
+
+        if (!wonHome1 && !wonHome2) {
+            isSide1 = !isSide1;
         }
     }
 
-    private void checkHome(Home home) {
+    private boolean checkHome(Home home) {
         int i = home.i;
         int j = home.j;
 
@@ -218,24 +271,35 @@ public class GameView extends View {
                 leftConnected = true;
                 Log.i("LOG", "left ");
             }
+
             if (line.i1 == i + 1 && line.j1 == j && line.i2 == i + 1 && line.j2 == j + 1) {
                 rightConnected = true;
                 Log.i("LOG", "right ");
             }
+
             if (line.i1 == i && line.j1 == j + 1 && line.i2 == i + 1 && line.j2 == j + 1) {
                 topConnected = true;
                 Log.i("LOG", "top ");
             }
+
             if (line.i1 == i && line.j1 == j && line.i2 == i + 1 && line.j2 == j) {
                 bottomConnected = true;
                 Log.i("LOG", "bottom ");
             }
         }
+
         boolean isFullConnected = leftConnected && rightConnected && topConnected && bottomConnected;
         if (isFullConnected) {
             home.playerIndex = isSide1 ? 1 : 2;
             homes.add(home);
+            if (home.playerIndex == 1) {
+                player1score++;
+            } else {
+                player2score++;
+            }
+            return true;
         }
+        return false;
     }
 
     private float computeDiff(float x1, float y1, float x2, float y2) {
@@ -246,9 +310,9 @@ public class GameView extends View {
         Position p1 = computePoint(line.i1, line.j1);
         Position p2 = computePoint(line.i2, line.j2);
         if (line.playerIndex == 1) {
-            linePaint.setColor(Color.parseColor("#4444ff"));
+            linePaint.setColor(player1Color);
         } else {
-            linePaint.setColor(Color.parseColor("#ff4444"));
+            linePaint.setColor(player2Color);
         }
         canvas.drawLine(p1.x, p1.y, p2.x, p2.y, linePaint);
     }
@@ -261,6 +325,25 @@ public class GameView extends View {
                 canvas.drawText(name, point.x, point.y + 50, textPaint);
             }
         }
+    }
+
+    public void reset() {
+        player1score = 0;
+        player2score = 0;
+
+        cols = 4;
+        rows = 4;
+        space = 150;
+        radius = 15;
+
+        isDebugMode = false;
+        isSide1 = true;
+
+        isGameOver = false;
+
+        lines.clear();
+        homes.clear();
+        invalidate();
     }
 
     private Position computePoint(int i, int j) {
