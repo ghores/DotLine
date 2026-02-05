@@ -6,7 +6,6 @@ import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
 import android.util.AttributeSet;
-import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
@@ -93,16 +92,6 @@ public class GameView extends View {
         homePaint.setColor(Color.WHITE);
         homePaint.setStyle(Paint.Style.FILL);
         homePaint.setAntiAlias(true);
-
-        int boxWidth = (cols - 1) * space;
-        int boxHeight = (rows - 1) * space;
-
-        DisplayMetrics dp = G.context.getResources().getDisplayMetrics();
-        int screenWidth = dp.widthPixels;
-        int screenHeight = dp.heightPixels;
-
-        offsetX = (screenWidth - boxWidth) / 2;
-        offsetY = (screenHeight - boxHeight) / 2;
     }
 
     @Override
@@ -165,6 +154,22 @@ public class GameView extends View {
             }
             canvas.drawText(message, screenWidthHalf, getHeight() - 100, textPaint);
         }
+    }
+
+    @Override
+    protected void onSizeChanged(int w, int h, int oldw, int oldh) {
+        super.onSizeChanged(w, h, oldw, oldh);
+
+        int boxWidth = (cols - 1) * space;
+        int boxHeight = (rows - 1) * space;
+
+        int contentW = w - getPaddingLeft() - getPaddingRight();
+        int contentH = h - getPaddingTop() - getPaddingBottom();
+
+        offsetX = getPaddingLeft() + (contentW - boxWidth) / 2;
+        offsetY = getPaddingTop() + (contentH - boxHeight) / 2;
+
+        invalidate();
     }
 
     @SuppressLint("ClickableViewAccessibility")
