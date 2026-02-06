@@ -19,6 +19,5 @@ public class G extends Application {
         context = getApplicationContext();
         resources = context.getResources();
         displayMetrics = resources.getDisplayMetrics();
-        Log.i("Test", "onCreate: from G");
     }
 }
