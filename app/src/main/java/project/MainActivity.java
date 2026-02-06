@@ -11,7 +11,6 @@ import androidx.core.view.WindowInsetsCompat;
 
 import com.example.dotnboxes.R;
 
-
 public class MainActivity extends AppCompatActivity {
 
     @Override
