@@ -31,5 +31,6 @@ public class MainActivity extends AppCompatActivity {
         btnReset.setOnClickListener((view -> {
             gameView.resetGame();
         }));
+        //gameView.resetGame();
     }
 }
