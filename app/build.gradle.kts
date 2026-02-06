@@ -3,11 +3,11 @@ plugins {
 }
 
 android {
-    namespace = "com.example.dotline"
+    namespace = "com.example.dotnboxes"
     compileSdk = 36
 
     defaultConfig {
-        applicationId = "com.example.dotline"
+        applicationId = "com.example.dotnboxes"
         minSdk = 22
         //noinspection EditedTargetSdkVersion
         targetSdk = 36

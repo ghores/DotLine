@@ -6,12 +6,13 @@ import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
 import android.util.AttributeSet;
-import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+
+import com.example.dotnboxes.R;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -19,34 +20,24 @@ import java.util.Comparator;
 
 public class GameView extends View {
 
-    private Paint dotPaint;
-    private Paint touchPaint;
-    private Paint textPaint;
-    private Paint linePaint;
-    private Paint homePaint;
+    private Paint paintDot;
+    private Paint paintTouch;
+    private Paint paintText;
+    private Paint paintLine;
+    private Paint paintBox;
 
-    private int player1Color = Color.parseColor("#4444ff");
-    private int player2Color = Color.parseColor("#ff4444");
+    private int boxWidth;
+    private int boxHeight;
 
-    private int player1score = 0;
-    private int player2score = 0;
+    private int screenWith;
+    private int screenHeight;
+    private int screenWidthHalf;
 
-    private int cols = 4;
-    private int rows = 4;
     private int offsetY;
     private int offsetX;
-    private int space = 150;
-    private int radius = 15;
 
     private float touchX;
     private float touchY;
-
-    private boolean isDebugMode = false;
-    private boolean isSide1 = true;
-    private boolean isGameOver = false;
-
-    private ArrayList<Line> lines = new ArrayList<>();
-    private ArrayList<Home> homes = new ArrayList<>();
 
     public GameView(Context context) {
         super(context);
@@ -65,109 +56,178 @@ public class GameView extends View {
 
     private void initialize() {
         if (isInEditMode()) return;
-        dotPaint = new Paint();
-        dotPaint.setColor(Color.WHITE);
-        dotPaint.setStyle(Paint.Style.FILL);
-        dotPaint.setAntiAlias(true);
+        initializePaints();
+    }
 
-        touchPaint = new Paint();
-        touchPaint.setColor(Color.RED);
-        touchPaint.setStyle(Paint.Style.FILL);
-        touchPaint.setAntiAlias(true);
+    private void initializePaints() {
+        paintDot = new Paint();
+        paintDot.setColor(Color.WHITE);
+        paintDot.setStyle(Paint.Style.FILL);
+        paintDot.setAntiAlias(true);
 
-        linePaint = new Paint();
-        linePaint.setColor(Color.parseColor("#4444ff"));
-        linePaint.setStyle(Paint.Style.FILL);
-        linePaint.setStrokeWidth(10);
-        linePaint.setAntiAlias(true);
+        paintTouch = new Paint();
+        paintTouch.setColor(Color.RED);
+        paintTouch.setStyle(Paint.Style.FILL);
+        paintTouch.setAntiAlias(true);
 
-        textPaint = new Paint();
-        textPaint.setColor(Color.WHITE);
-        textPaint.setStyle(Paint.Style.FILL);
-        textPaint.setAntiAlias(true);
-        textPaint.setTextSize(30);
-        textPaint.setTextAlign(Paint.Align.CENTER);
+        paintLine = new Paint();
+        paintLine.setColor(Color.parseColor("#4444ff"));
+        paintLine.setStyle(Paint.Style.FILL);
+        paintLine.setStrokeWidth(10);
+        paintLine.setAntiAlias(true);
 
-        homePaint = new Paint();
-        homePaint.setColor(Color.WHITE);
-        homePaint.setStyle(Paint.Style.FILL);
-        homePaint.setAntiAlias(true);
+        paintText = new Paint();
+        paintText.setColor(Color.WHITE);
+        paintText.setStyle(Paint.Style.FILL);
+        paintText.setAntiAlias(true);
+        paintText.setTextSize(30);
+        paintText.setTextAlign(Paint.Align.CENTER);
+
+        paintBox = new Paint();
+        paintBox.setColor(Color.WHITE);
+        paintBox.setStyle(Paint.Style.FILL);
+        paintBox.setAntiAlias(true);
     }
 
     @Override
     protected void onDraw(@NonNull Canvas canvas) {
-        if (isInEditMode()) return;
         super.onDraw(canvas);
-        canvas.drawColor(Color.parseColor("#222222"));
+        if (isInEditMode()) return;
 
-        for (Line line : lines) {
-            connect(canvas, line);
+        drawBackground(canvas);
+        drawConnectedLines(canvas);
+        drawBoxes(canvas);
+        drawDots(canvas);
+        drawScores(canvas);
+        drawDebugTouchPosition(canvas);
+        drawDebugNaming(canvas);
+
+        if (State.isGameOver) {
+            drawFinishMessage(canvas);
         }
+    }
 
-        for (Home home : homes) {
-            if (home.playerIndex == 1) {
-                homePaint.setColor(player1Color);
-            } else {
-                homePaint.setColor(player2Color);
+    private static void drawBackground(@NonNull Canvas canvas) {
+        canvas.drawColor(Theme.backgroundColor);
+    }
+
+    private void drawConnectedLines(@NonNull Canvas canvas) {
+        for (Line line : State.lines) {
+            drawLine(canvas, line);
+        }
+    }
+
+    private void drawLine(Canvas canvas, Line line) {
+        Position p1 = getPointPosition(line.i1, line.j1);
+        Position p2 = getPointPosition(line.i2, line.j2);
+        paintLine.setColor(getPlayerColor(line.playerIndex));
+        canvas.drawLine(p1.x, p1.y, p2.x, p2.y, paintLine);
+    }
+
+    private void drawBoxes(@NonNull Canvas canvas) {
+        for (Box box : State.boxes) {
+            paintBox.setColor(getPlayerColor(box.playerIndex));
+            Position boxPosition = getPointPosition(box.i, box.j);
+            canvas.drawCircle(boxPosition.x + (float) Theme.space / 2, boxPosition.y - (float) Theme.space / 2, 30, paintBox);
+        }
+    }
+
+    private void drawDots(@NonNull Canvas canvas) {
+        for (int i = 0; i < Options.cols; i++) {
+            for (int j = 0; j < Options.rows; j++) {
+                Position point = getPointPosition(i, j);
+                canvas.drawCircle(point.x, point.y, Theme.radius, paintDot);
             }
-            Position homePosition = computePoint(home.i, home.j);
-            canvas.drawCircle(homePosition.x + (float) space / 2, homePosition.y - (float) space / 2, 30, homePaint);
         }
+    }
 
-        for (int i = 0; i < cols; i++) {
-            for (int j = 0; j < rows; j++) {
-                Position point = computePoint(i, j);
-                canvas.drawCircle(point.x, point.y, radius, dotPaint);
+    private void drawScores(Canvas canvas) {
+        drawPlayerScore(canvas, 1, screenWidthHalf - 100, 100);
+        drawPlayerScore(canvas, 2, screenWidthHalf + 100, 100);
+    }
+
+    private void drawPlayerScore(@NonNull Canvas canvas, int playerIndex, int x, int y) {
+        paintBox.setColor(getPlayerColor(playerIndex));
+        canvas.drawCircle(x, y, 40, paintBox);
+        canvas.drawText("" + getPlayerScore(playerIndex), x, y + 10, paintText);
+        canvas.drawText(getPlayerName(playerIndex), x, y + 80, paintText);
+    }
+
+    private void drawDebugTouchPosition(@NonNull Canvas canvas) {
+        if (!Debug.isDebugMode || !Debug.drawTouch) {
+            return;
+        }
+        canvas.drawCircle(touchX, touchY, 10, paintTouch);
+    }
+
+    private void drawDebugNaming(Canvas canvas) {
+        if (!Debug.isDebugMode || !Debug.drawDotName) {
+            return;
+        }
+        for (int i = 0; i < Options.cols; i++) {
+            for (int j = 0; j < Options.rows; j++) {
+                String name = i + "," + j;
+                Position point = getPointPosition(i, j);
+                canvas.drawText(name, point.x, point.y + 50, paintText);
             }
         }
+    }
 
-        int screenWidthHalf = G.context.getResources().getDisplayMetrics().widthPixels / 2;
-        int screenHeight = G.context.getResources().getDisplayMetrics().heightPixels;
+    private Position getPointPosition(int i, int j) {
+        int x = offsetX + (i * Theme.space);
+        int y = offsetY + ((Options.rows - 1 - j) * Theme.space);
+        return new Position(x, y);
+    }
 
-        homePaint.setColor(player1Color);
-        canvas.drawCircle(screenWidthHalf - 100, 100, 40, homePaint);
-        canvas.drawText("" + player1score, screenWidthHalf - 100, 110, textPaint);
-        canvas.drawText("PLAYER 1", screenWidthHalf - 100, 180, textPaint);
+    private void drawFinishMessage(@NonNull Canvas canvas) {
+        canvas.drawText(getNameFinishMessage(), screenWidthHalf, getHeight() - 100, paintText);
+    }
 
-        homePaint.setColor(player2Color);
-        canvas.drawCircle(screenWidthHalf + 100, 100, 40, homePaint);
-        canvas.drawText("" + player2score, screenWidthHalf + 100, 110, textPaint);
-        canvas.drawText("PLAYER 2", screenWidthHalf + 100, 180, textPaint);
-
-        if (isDebugMode) {
-            canvas.drawCircle(touchX, touchY, 10, touchPaint);
-            debugNaming(canvas);
+    private String getNameFinishMessage() {
+        String message = "";
+        if (getPlayerScore(1) == getPlayerScore(2)) {
+            message = G.context.getString(R.string.gameDraw);
+        } else if (getPlayerScore(1) > getPlayerScore(2)) {
+            message = getPlayerName(1) + G.context.getString(R.string.playerWonGame);
+        } else {
+            message = getPlayerName(2) + G.context.getString(R.string.playerWonGame);
         }
+        return message;
+    }
 
-        if (homes.size() == (cols - 1) * (rows - 1)) {
-            isGameOver = true;
-        }
+    private int getPlayerColor(int playerIndex) {
+        return Theme.playerColors[playerIndex - 1];
+    }
 
-        if (isGameOver) {
-            String message = "";
-            if (player1score == player2score) {
-                message = "GAME DRAW";
-            } else if (player1score > player2score) {
-                message = "PLAYER 1 WON THE GAME";
-            } else {
-                message = "PLAYER 2 WON THE GAME";
-            }
-            canvas.drawText(message, screenWidthHalf, getHeight() - 100, textPaint);
-        }
+    private String getPlayerName(int playerIndex) {
+        return Options.playerNames[playerIndex - 1];
+    }
+
+    private int getPlayerIndex() {
+        return State.isSide1 ? 1 : 2;
+    }
+
+    private int getPlayerScore(int playerIndex) {
+        return State.playerScores[playerIndex - 1];
+    }
+
+    private void increasePlayerScore(int playerIndex) {
+        State.playerScores[playerIndex - 1]++;
     }
 
     @Override
     protected void onSizeChanged(int w, int h, int oldw, int oldh) {
         super.onSizeChanged(w, h, oldw, oldh);
 
-        int boxWidth = (cols - 1) * space;
-        int boxHeight = (rows - 1) * space;
+        boxWidth = (Options.cols - 1) * Theme.space;
+        boxHeight = (Options.rows - 1) * Theme.space;
 
-        int contentW = w - getPaddingLeft() - getPaddingRight();
-        int contentH = h - getPaddingTop() - getPaddingBottom();
+        screenWith = w - getPaddingLeft() - getPaddingRight();
+        screenHeight = h - getPaddingTop() - getPaddingBottom();
+        screenWidthHalf = screenWith / 2;
 
-        offsetX = getPaddingLeft() + (contentW - boxWidth) / 2;
-        offsetY = getPaddingTop() + (contentH - boxHeight) / 2;
+        offsetX = getPaddingLeft() + (screenWith - boxWidth) / 2;
+        offsetY = getPaddingTop() + (screenHeight - boxHeight) / 2;
 
         invalidate();
     }
@@ -175,20 +235,86 @@ public class GameView extends View {
     @SuppressLint("ClickableViewAccessibility")
     @Override
     public boolean onTouchEvent(MotionEvent event) {
-        if (isGameOver) return true;
+        if (State.isGameOver) return true;
         touchX = event.getX();
         touchY = event.getY();
 
-        detectConnectingLine();
-        invalidate();
+        connectLine();
+        refresh();
         return super.onTouchEvent(event);
     }
 
-    public void detectConnectingLine() {
+    private void connectLine() {
+        ArrayList<Diff> diffs = getDiffsByOrder();
+
+        Diff point1 = diffs.get(0);
+        Diff point2 = diffs.get(1);
+
+        Diff firstPoint;
+        Diff secondPoint;
+
+        Box box1;
+        Box box2 = null;
+        if (point1.i == point2.i) {
+            //vertical
+            if (point1.j < point2.j) {
+                firstPoint = point1;
+                secondPoint = point2;
+            } else {
+                firstPoint = point2;
+                secondPoint = point1;
+            }
+            box1 = new Box(firstPoint.i, firstPoint.j);
+            if (firstPoint.i > 0) {
+                box2 = new Box(firstPoint.i - 1, firstPoint.j);
+            }
+        } else {
+            //horizontal
+            if (point1.i < point2.i) {
+                firstPoint = point1;
+                secondPoint = point2;
+            } else {
+                firstPoint = point2;
+                secondPoint = point1;
+            }
+            box1 = new Box(firstPoint.i, firstPoint.j);
+            if (firstPoint.j > 0) {
+                box2 = new Box(firstPoint.i, firstPoint.j - 1);
+            }
+        }
+
+        //if this line is already connected
+        for (Line line : State.lines) {
+            if (line.i1 == firstPoint.i && line.j1 == firstPoint.j && line.i2 == secondPoint.i && line.j2 == secondPoint.j) {
+                return;
+            }
+        }
+
+        //add line to list of connected lines
+        Line line = new Line(firstPoint.i, firstPoint.j, secondPoint.i, secondPoint.j, getPlayerIndex());
+        State.lines.add(line);
+
+        //check if player get award
+        boolean wonBox1 = checkBox(box1);
+        boolean wonBox2 = false;
+
+        if (box2 != null) {
+            wonBox2 = checkBox(box2);
+        }
+
+        boolean mustPlayerNextPlayer = !wonBox1 && !wonBox2;
+
+        //if switching side required
+        if (mustPlayerNextPlayer) {
+            State.isSide1 = !State.isSide1;
+        }
+    }
+
+    private ArrayList<Diff> getDiffsByOrder() {
         ArrayList<Diff> diffs = new ArrayList<>();
-        for (int i = 0; i < cols; i++) {
-            for (int j = 0; j < rows; j++) {
-                Position position = computePoint(i, j);
+        for (int i = 0; i < Options.cols; i++) {
+            for (int j = 0; j < Options.rows; j++) {
+                Position position = getPointPosition(i, j);
                 float diff = computeDiff(touchX, touchY, position.x, position.y);
                 diffs.add(new Diff(i, j, diff));
             }
@@ -199,162 +325,74 @@ public class GameView extends View {
                 return o1.diff.compareTo(o2.diff);
             }
         });
-
-        Diff min1 = diffs.get(0);
-        Diff min2 = diffs.get(1);
-
-        Diff firstPoint;
-        Diff secondPoint;
-
-        Home home1 = null;
-        Home home2 = null;
-        if (min1.i == min2.i) {
-            //vertical
-            if (min1.j < min2.j) {
-                firstPoint = min1;
-                secondPoint = min2;
-            } else {
-                firstPoint = min2;
-                secondPoint = min1;
-            }
-            home1 = new Home(firstPoint.i, firstPoint.j);
-            if (firstPoint.i > 0) {
-                home2 = new Home(firstPoint.i - 1, firstPoint.j);
-            }
-        } else {
-            //horizontal
-            if (min1.i < min2.i) {
-                firstPoint = min1;
-                secondPoint = min2;
-            } else {
-                firstPoint = min2;
-                secondPoint = min1;
-            }
-            home1 = new Home(firstPoint.i, firstPoint.j);
-            if (firstPoint.j > 0) {
-                home2 = new Home(firstPoint.i, firstPoint.j - 1);
-            }
-        }
-
-        if (firstPoint.diff > space / 2) {
-            // return;
-        }
-
-        for (Line line : lines) {
-            if (line.i1 == firstPoint.i && line.j1 == firstPoint.j && line.i2 == secondPoint.i && line.j2 == secondPoint.j) {
-                return;
-            }
-        }
-
-        lines.add(new Line(firstPoint.i, firstPoint.j, secondPoint.i, secondPoint.j, isSide1 ? 1 : 2));
-        boolean wonHome1 = false;
-        boolean wonHome2 = false;
-        if (home1 != null) {
-            wonHome1 = checkHome(home1);
-        }
-
-        if (home2 != null) {
-            wonHome2 = checkHome(home2);
-        }
-
-        if (!wonHome1 && !wonHome2) {
-            isSide1 = !isSide1;
-        }
-    }
-
-    private boolean checkHome(Home home) {
-        int i = home.i;
-        int j = home.j;
-
-        boolean leftConnected = false;
-        boolean rightConnected = false;
-        boolean topConnected = false;
-        boolean bottomConnected = false;
-
-        for (Line line : lines) {
-            if (line.i1 == i && line.j1 == j && line.i2 == i && line.j2 == j + 1) {
-                leftConnected = true;
-                Log.i("LOG", "left ");
-            }
-
-            if (line.i1 == i + 1 && line.j1 == j && line.i2 == i + 1 && line.j2 == j + 1) {
-                rightConnected = true;
-                Log.i("LOG", "right ");
-            }
-
-            if (line.i1 == i && line.j1 == j + 1 && line.i2 == i + 1 && line.j2 == j + 1) {
-                topConnected = true;
-                Log.i("LOG", "top ");
-            }
-
-            if (line.i1 == i && line.j1 == j && line.i2 == i + 1 && line.j2 == j) {
-                bottomConnected = true;
-                Log.i("LOG", "bottom ");
-            }
-        }
-
-        boolean isFullConnected = leftConnected && rightConnected && topConnected && bottomConnected;
-        if (isFullConnected) {
-            home.playerIndex = isSide1 ? 1 : 2;
-            homes.add(home);
-            if (home.playerIndex == 1) {
-                player1score++;
-            } else {
-                player2score++;
-            }
-            return true;
-        }
-        return false;
+        return diffs;
     }
 
     private float computeDiff(float x1, float y1, float x2, float y2) {
         return (float) Math.sqrt(Math.pow(x1 - x2, 2) + Math.pow(y1 - y2, 2));
     }
 
-    private void connect(Canvas canvas, Line line) {
-        Position p1 = computePoint(line.i1, line.j1);
-        Position p2 = computePoint(line.i2, line.j2);
-        if (line.playerIndex == 1) {
-            linePaint.setColor(player1Color);
-        } else {
-            linePaint.setColor(player2Color);
-        }
-        canvas.drawLine(p1.x, p1.y, p2.x, p2.y, linePaint);
+    public void resetGame() {
+        State.playerScores[0] = 0;
+        State.playerScores[1] = 0;
+
+        Options.cols = 4;
+        Options.rows = 4;
+        Theme.space = 150;
+        Theme.radius = 15;
+
+        Debug.isDebugMode = false;
+        State.isSide1 = true;
+
+        State.isGameOver = false;
+
+        State.lines.clear();
+        State.boxes.clear();
+        refresh();
     }
 
-    private void debugNaming(Canvas canvas) {
-        for (int i = 0; i < cols; i++) {
-            for (int j = 0; j < rows; j++) {
-                String name = i + "," + j;
-                Position point = computePoint(i, j);
-                canvas.drawText(name, point.x, point.y + 50, textPaint);
-            }
+    private void refresh() {
+        if (State.boxes.size() == (Options.cols - 1) * (Options.rows - 1)) {
+            State.isGameOver = true;
         }
-    }
-
-    public void reset() {
-        player1score = 0;
-        player2score = 0;
-
-        cols = 4;
-        rows = 4;
-        space = 150;
-        radius = 15;
-
-        isDebugMode = false;
-        isSide1 = true;
-
-        isGameOver = false;
-
-        lines.clear();
-        homes.clear();
         invalidate();
     }
 
-    private Position computePoint(int i, int j) {
-        int x = offsetX + (i * space);
-        int y = offsetY + ((rows - 1 - j) * space);
-        return new Position(x, y);
+    private boolean checkBox(Box box) {
+        int i = box.i;
+        int j = box.j;
+
+        boolean hasLeft = false;
+        boolean hasRight = false;
+        boolean hasTop = false;
+        boolean hasBottom = false;
+
+        for (Line line : State.lines) {
+            if (line.i1 == i && line.j1 == j && line.i2 == i && line.j2 == j + 1) {
+                hasLeft = true;
+            }
+
+            if (line.i1 == i + 1 && line.j1 == j && line.i2 == i + 1 && line.j2 == j + 1) {
+                hasRight = true;
+            }
+
+            if (line.i1 == i && line.j1 == j + 1 && line.i2 == i + 1 && line.j2 == j + 1) {
+                hasTop = true;
+            }
+
+            if (line.i1 == i && line.j1 == j && line.i2 == i + 1 && line.j2 == j) {
+                hasBottom = true;
+            }
+        }
+
+        boolean isFullConnected = hasLeft && hasRight && hasTop && hasBottom;
+        if (isFullConnected) {
+            box.playerIndex = getPlayerIndex();
+            State.boxes.add(box);
+            increasePlayerScore(box.playerIndex);
+            return true;
+        }
+        return false;
     }
 
     private static class Position {
@@ -379,12 +417,12 @@ public class GameView extends View {
         }
     }
 
-    private static class Home {
+    private static class Box {
         public int i;
         public int j;
         public int playerIndex;
 
-        public Home(int i, int j) {
+        public Box(int i, int j) {
             this.i = i;
             this.j = j;
         }
@@ -404,5 +442,32 @@ public class GameView extends View {
             this.j2 = j2;
             this.playerIndex = playerIndex;
         }
+    }
+
+    public static class Theme {
+        private static int[] playerColors = new int[]{Color.parseColor("#4444ff"), Color.parseColor("#ff4444")};
+        private static int space = 150;
+        private static int radius = 15;
+        private static int backgroundColor = Color.parseColor("#222222");
+    }
+
+    public static class State {
+        private static ArrayList<Line> lines = new ArrayList<>();
+        private static ArrayList<Box> boxes = new ArrayList<>();
+        private static int[] playerScores = new int[]{0, 0};
+        private static boolean isGameOver = false;
+        private static boolean isSide1 = true;
+    }
+
+    public static class Options {
+        private static String[] playerNames = new String[]{"Player 1", "Player 2"};
+        private static int cols = 4;
+        private static int rows = 4;
+    }
+
+    public static class Debug {
+        private static boolean isDebugMode = false;
+        private static boolean drawTouch = false;
+        private static boolean drawDotName = false;
     }
 }

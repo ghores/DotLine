@@ -9,7 +9,8 @@ import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 
-import com.example.dotline.R;
+import com.example.dotnboxes.R;
+
 
 public class MainActivity extends AppCompatActivity {
 
@@ -29,7 +30,7 @@ public class MainActivity extends AppCompatActivity {
         });
 
         btnReset.setOnClickListener((view -> {
-            gameView.reset();
+            gameView.resetGame();
         }));
     }
 }

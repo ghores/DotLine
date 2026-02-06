@@ -1,4 +1,4 @@
-package com.example.dotline;
+package com.example.dotnboxes;
 
 import org.junit.Test;
 

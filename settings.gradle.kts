@@ -13,5 +13,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "dotline"
+rootProject.name = "Dot and Boxes"
 include(":app")
